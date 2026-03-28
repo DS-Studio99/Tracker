@@ -84,7 +84,7 @@ export async function POST(req: Request) {
           app_version,
           is_rooted,
           device_token: deviceToken,
-          status: "online",
+          is_online: true,
           last_seen: new Date().toISOString()
         })
         .eq("id", deviceId)
@@ -129,7 +129,7 @@ export async function POST(req: Request) {
           app_version,
           is_rooted: is_rooted ?? false,
           device_token: deviceToken,
-          status: "online",
+          is_online: true,
           last_seen: new Date().toISOString()
         })
         .select("id")

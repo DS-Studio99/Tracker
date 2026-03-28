@@ -192,7 +192,7 @@ export async function POST(req: Request) {
     }
 
     // Also update device last sync heartbeat
-    supabaseAdmin.from("devices").update({ last_seen: new Date().toISOString(), status: "online" }).eq("id", deviceId).then()
+    supabaseAdmin.from("devices").update({ last_seen: new Date().toISOString(), is_online: true }).eq("id", deviceId).then()
 
     return NextResponse.json({
       success: true,
