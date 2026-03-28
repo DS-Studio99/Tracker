@@ -36,6 +36,7 @@ export default function DevicesPage() {
   const [userId, setUserId] = useState<string>("")
   const [userEmail, setUserEmail] = useState<string>("")
   const [isLoading, setIsLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   const [filterTabs, setFilterTabs] = useState("all")
   
@@ -190,11 +191,69 @@ export default function DevicesPage() {
     router.push("/settings")
   }
 
+  // ── Refresh Device Online/Offline Status ─────────────────────────────
+  const handleRefreshDevices = async () => {
+    setIsRefreshing(true)
+    try {
+      const { data: freshDevices, error } = await (supabase as any)
+        .from('devices')
+        .select('id, is_online, last_seen, battery_level, is_charging, storage_used, storage_total, ram_used, ram_total')
+        .eq('user_id', userId)
+      
+      if (error) throw error
+
+      if (freshDevices && Array.isArray(freshDevices)) {
+        const OFFLINE_THRESHOLD_MS = 15 * 60 * 1000 // 15 minutes = offline threshold
+        const now = Date.now()
+
+        for (const dev of freshDevices as any[]) {
+          const lastSeenMs = dev.last_seen ? new Date(dev.last_seen).getTime() : 0
+          const timeSinceSeen = now - lastSeenMs
+          const shouldBeOnline = timeSinceSeen < OFFLINE_THRESHOLD_MS
+
+          // If status changed, update in Supabase
+          if (dev.is_online !== shouldBeOnline) {
+            await (supabase as any).from('devices').update({ is_online: shouldBeOnline }).eq('id', dev.id)
+          }
+
+          // Always update local store with latest data
+          updateDevice(dev.id, {
+            is_online: shouldBeOnline,
+            last_seen: dev.last_seen,
+            battery_level: dev.battery_level,
+            is_charging: dev.is_charging,
+          } as Partial<Device>)
+        }
+
+        const onlineCount = (freshDevices as any[]).filter(d => {
+          const lastSeenMs = d.last_seen ? new Date(d.last_seen).getTime() : 0
+          return Date.now() - lastSeenMs < OFFLINE_THRESHOLD_MS
+        }).length
+
+        toast.success(`✅ Refreshed! ${onlineCount}/${freshDevices.length} devices online`)
+      }
+    } catch (err: any) {
+      toast.error(`Failed to refresh: ${err.message}`)
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
+
+
   // ── Render Helpers ──────────────────────────────────────────────────
   const formatBytes = (bytes: number | null) => {
     if (!bytes) return "0 GB"
     const gb = bytes / (1024 * 1024 * 1024)
     return `${gb.toFixed(1)} GB`
+  }
+
+  const getOfflineAge = (lastSeen: string | null) => {
+    if (!lastSeen) return "Never connected"
+    try {
+      return formatDistanceToNow(parseISO(lastSeen), { addSuffix: true })
+    } catch {
+      return "Unknown"
+    }
   }
 
   if (isLoading) {
@@ -215,6 +274,21 @@ export default function DevicesPage() {
           title="📱 My Devices" 
           description="All devices automatically connected to your account"
         />
+        {devices.length > 0 && (
+          <Button
+            onClick={handleRefreshDevices}
+            disabled={isRefreshing || !userId}
+            variant="outline"
+            size="sm"
+            className={cn(
+              "shrink-0 flex items-center gap-2 h-9 px-4 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/30",
+              isRefreshing && "opacity-70"
+            )}
+          >
+            <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+            {isRefreshing ? "Checking..." : "🔄 Refresh Status"}
+          </Button>
+        )}
       </div>
 
       {devices.length > 0 && (
@@ -308,16 +382,36 @@ export default function DevicesPage() {
                   onClick={() => handleCardClick(device.id)}
                   className={cn(
                     "relative transition-all duration-300 hover:shadow-lg cursor-pointer border-2 group flex flex-col bg-white dark:bg-slate-950",
-                    isSelected ? "border-indigo-500 shadow-indigo-100/50 dark:shadow-indigo-900/20 shadow-xl ring-2 ring-indigo-500/20" : "border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-800"
+                    isSelected ? "border-indigo-500 shadow-indigo-100/50 dark:shadow-indigo-900/20 shadow-xl ring-2 ring-indigo-500/20" 
+                    : device.is_online ? "border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-800"
+                    : "border-rose-100 dark:border-rose-900/30 hover:border-rose-200 dark:hover:border-rose-800/50"
                   )}
                 >
-                  {/* Status Indicator */}
-                  <div className="absolute -top-3 right-4 flex items-center gap-1.5 px-3 py-1 bg-white dark:bg-slate-900 border rounded-full shadow-sm">
-                    <div className={cn("h-2 w-2 rounded-full", device.is_online ? "bg-emerald-500 animate-[pulse_2s_ease-in-out_infinite]" : "bg-slate-400")} />
-                    <span className="text-[10px] font-bold tracking-wider uppercase text-slate-600 dark:text-slate-400">
-                      {device.is_online ? "Online" : "Offline"}
+                  {/* Status Indicator - shows online pulse OR offline age */}
+                  <div className={cn(
+                    "absolute -top-3 right-4 flex items-center gap-1.5 px-3 py-1 bg-white dark:bg-slate-900 border rounded-full shadow-sm",
+                    !device.is_online && "border-rose-200 dark:border-rose-800"
+                  )}>
+                    <div className={cn(
+                      "h-2 w-2 rounded-full", 
+                      device.is_online ? "bg-emerald-500 animate-[pulse_2s_ease-in-out_infinite]" : "bg-rose-500"
+                    )} />
+                    <span className={cn(
+                      "text-[10px] font-bold tracking-wider uppercase",
+                      device.is_online ? "text-emerald-600 dark:text-emerald-400" : "text-rose-500 dark:text-rose-400"
+                    )}>
+                      {device.is_online ? "🟢 Online" : "🔴 Offline"}
                     </span>
                   </div>
+                  {/* Offline age badge below status */}
+                  {!device.is_online && device.last_seen && (
+                    <div className="absolute -top-3 left-4 flex items-center gap-1 px-2 py-1 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 rounded-full shadow-sm">
+                      <WifiOff className="h-2.5 w-2.5 text-rose-500" />
+                      <span className="text-[9px] font-medium text-rose-600 dark:text-rose-400 whitespace-nowrap">
+                        {getOfflineAge(device.last_seen)}
+                      </span>
+                    </div>
+                  )}
 
                   <CardHeader className="pb-3 px-5 pt-6">
                     <div className="flex justify-between items-start gap-3">
