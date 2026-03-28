@@ -160,12 +160,11 @@ export async function POST(req: Request) {
     // 7. Return success response
     return NextResponse.json({
       success: true,
-      data: {
-        device_id: deviceId,
-        device_token: deviceToken,
-        user_id: userId,
-        settings: currentSettings
-      }
+      device_id: deviceId,
+      device_token: deviceToken,
+      user_id: userId,
+      is_new_device: !existingDevice,
+      settings: currentSettings
     }, { status: 200 })
 
   } catch (error: any) {
