@@ -1,0 +1,128 @@
+src/app/(dashboard)/app-usage/page.tsx(160,10): error TS2304: Cannot find name 'Badge'.
+src/app/(dashboard)/app-usage/page.tsx(162,11): error TS2304: Cannot find name 'Badge'.
+src/app/(dashboard)/app-usage/page.tsx(211,37): error TS2322: Type 'Dispatch<SetStateAction<string>>' is not assignable to type '(value: string | null, eventDetails: SelectRootChangeEventDetails) => void'.
+  Types of parameters 'value' and 'value' are incompatible.
+    Type 'string | null' is not assignable to type 'SetStateAction<string>'.
+      Type 'null' is not assignable to type 'SetStateAction<string>'.
+src/app/(dashboard)/app-usage/page.tsx(274,22): error TS2322: Type '(value: number) => [string, string]' is not assignable to type 'Formatter<ValueType, NameType> & ((value: ValueType, name: NameType, item: TooltipPayloadEntry, index: number, payload: TooltipPayload) => ReactNode | [...])'.
+  Type '(value: number) => [string, string]' is not assignable to type 'Formatter<ValueType, NameType>'.
+    Types of parameters 'value' and 'value' are incompatible.
+      Type 'ValueType | undefined' is not assignable to type 'number'.
+        Type 'undefined' is not assignable to type 'number'.
+src/app/(dashboard)/app-usage/page.tsx(304,22): error TS2322: Type '(value: number) => [string, string]' is not assignable to type 'Formatter<ValueType, NameType> & ((value: ValueType, name: NameType, item: TooltipPayloadEntry, index: number, payload: TooltipPayload) => ReactNode | [...])'.
+  Type '(value: number) => [string, string]' is not assignable to type 'Formatter<ValueType, NameType>'.
+    Types of parameters 'value' and 'value' are incompatible.
+      Type 'ValueType | undefined' is not assignable to type 'number'.
+        Type 'undefined' is not assignable to type 'number'.
+src/app/(dashboard)/apps/page.tsx(157,52): error TS2345: Argument of type 'any' is not assignable to parameter of type 'never'.
+src/app/(dashboard)/apps/page.tsx(169,53): error TS2345: Argument of type 'any' is not assignable to parameter of type 'never'.
+src/app/(dashboard)/apps/page.tsx(277,25): error TS2322: Type '(val: number) => [string, string]' is not assignable to type 'Formatter<ValueType, NameType> & ((value: ValueType, name: NameType, item: TooltipPayloadEntry, index: number, payload: TooltipPayload) => ReactNode | [...])'.
+  Type '(val: number) => [string, string]' is not assignable to type 'Formatter<ValueType, NameType>'.
+    Types of parameters 'val' and 'value' are incompatible.
+      Type 'ValueType | undefined' is not assignable to type 'number'.
+        Type 'undefined' is not assignable to type 'number'.
+src/app/(dashboard)/apps/page.tsx(307,38): error TS2322: Type 'Dispatch<SetStateAction<string>>' is not assignable to type '(value: string | null, eventDetails: SelectRootChangeEventDetails) => void'.
+  Types of parameters 'value' and 'value' are incompatible.
+    Type 'string | null' is not assignable to type 'SetStateAction<string>'.
+      Type 'null' is not assignable to type 'SetStateAction<string>'.
+src/app/(dashboard)/apps/page.tsx(319,34): error TS2322: Type 'Dispatch<SetStateAction<string>>' is not assignable to type '(value: string | null, eventDetails: SelectRootChangeEventDetails) => void'.
+  Types of parameters 'value' and 'value' are incompatible.
+    Type 'string | null' is not assignable to type 'SetStateAction<string>'.
+      Type 'null' is not assignable to type 'SetStateAction<string>'.
+src/app/(dashboard)/apps/page.tsx(403,79): error TS2552: Cannot find name 'Clock'. Did you mean 'Lock'?
+src/app/(dashboard)/bookmarks/page.tsx(114,55): error TS2339: Property 'blocked_websites' does not exist on type 'never'.
+src/app/(dashboard)/bookmarks/page.tsx(114,84): error TS2339: Property 'blocked_websites' does not exist on type 'never'.
+src/app/(dashboard)/bookmarks/page.tsx(118,21): error TS2345: Argument of type '{ blocked_websites: any[]; }' is not assignable to parameter of type 'never'.
+src/app/(dashboard)/bookmarks/page.tsx(123,14): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: never, options?: { count?: "exact" | "planned" | "estimated" | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "remote_commands", never, "POST">', gave the following error.
+    Argument of type '{ device_id: string; command_type: string; target: string; status: string; }' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(values: never[], options?: { count?: "exact" | "planned" | "estimated" | undefined; defaultToNull?: boolean | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "remote_commands", never, "POST">', gave the following error.
+    Object literal may only specify known properties, and 'device_id' does not exist in type 'never[]'.
+src/app/(dashboard)/bookmarks/page.tsx(266,39): error TS2322: Type 'Dispatch<SetStateAction<string>>' is not assignable to type '(value: string | null, eventDetails: SelectRootChangeEventDetails) => void'.
+  Types of parameters 'value' and 'value' are incompatible.
+    Type 'string | null' is not assignable to type 'SetStateAction<string>'.
+      Type 'null' is not assignable to type 'SetStateAction<string>'.
+src/app/(dashboard)/browser/page.tsx(174,21): error TS2345: Argument of type 'any' is not assignable to parameter of type 'never'.
+src/app/(dashboard)/contacts/page.tsx(6,10): error TS2724: '"lucide-react"' has no exported member named 'UserOpcion'. Did you mean 'UserIcon'?
+src/app/(dashboard)/devices/page.tsx(34,57): error TS2339: Property 'removeDevice' does not exist on type 'DeviceState'.
+src/app/(dashboard)/devices/page.tsx(34,71): error TS2339: Property 'updateDevice' does not exist on type 'DeviceState'.
+src/app/(dashboard)/devices/page.tsx(77,35): error TS2551: Property 'fetchDevices' does not exist on type 'DeviceState'. Did you mean 'setDevices'?
+src/app/(dashboard)/devices/page.tsx(130,46): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: never, options?: { count?: "exact" | "planned" | "estimated" | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "remote_commands", never, "POST">', gave the following error.
+    Argument of type '{ device_id: string; command_type: string; payload: {}; status: string; }' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(values: never[], options?: { count?: "exact" | "planned" | "estimated" | undefined; defaultToNull?: boolean | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "remote_commands", never, "POST">', gave the following error.
+    Object literal may only specify known properties, and 'device_id' does not exist in type 'never[]'.
+src/app/(dashboard)/devices/page.tsx(383,106): error TS2322: Type '{ value: number; className: string; indicatorClassName: string; }' is not assignable to type 'IntrinsicAttributes & ProgressRootProps'.
+  Property 'indicatorClassName' does not exist on type 'IntrinsicAttributes & ProgressRootProps'.
+src/app/(dashboard)/devices/page.tsx(415,41): error TS2322: Type '{ children: Element; asChild: true; }' is not assignable to type 'IntrinsicAttributes & Props<unknown>'.
+  Property 'asChild' does not exist on type 'IntrinsicAttributes & Props<unknown>'.
+src/app/(dashboard)/emails/page.tsx(87,47): error TS2345: Argument of type 'any' is not assignable to parameter of type 'never'.
+src/app/(dashboard)/locations/page.tsx(130,17): error TS2339: Property 'geofence_zones' does not exist on type 'never'.
+src/app/(dashboard)/locations/page.tsx(131,27): error TS2339: Property 'geofence_zones' does not exist on type 'never'.
+src/app/(dashboard)/locations/page.tsx(165,7): error TS2322: Type '(_: any, i: any) => Element' is not assignable to type '(row: Location) => ReactNode'.
+  Target signature provides too few arguments. Expected 2 or more, but got 1.
+src/app/(dashboard)/locations/page.tsx(165,16): error TS7006: Parameter '_' implicitly has an 'any' type.
+src/app/(dashboard)/locations/page.tsx(165,19): error TS7006: Parameter 'i' implicitly has an 'any' type.
+src/app/(dashboard)/locations/page.tsx(338,14): error TS2322: Type '{ data: Location[]; columns: ColumnDef<Location>[]; searchPlaceholder: string; searchQuery: string; onSearchChange: Dispatch<SetStateAction<string>>; isLoading: boolean; page: number; totalPages: number; onPageChange: Dispatch<...>; }' is not assignable to type 'IntrinsicAttributes & DataTableProps<Location>'.
+  Property 'totalPages' does not exist on type 'IntrinsicAttributes & DataTableProps<Location>'.
+src/app/(dashboard)/media/page.tsx(23,10): error TS2305: Module '"@/lib/utils/format"' has no exported member 'formatBytes'.
+src/app/(dashboard)/media/page.tsx(130,7): error TS2322: Type 'Element' is not assignable to type 'string'.
+src/app/(dashboard)/media/page.tsx(237,36): error TS2322: Type 'Dispatch<SetStateAction<string>>' is not assignable to type '(value: string | null, eventDetails: SelectRootChangeEventDetails) => void'.
+  Types of parameters 'value' and 'value' are incompatible.
+    Type 'string | null' is not assignable to type 'SetStateAction<string>'.
+      Type 'null' is not assignable to type 'SetStateAction<string>'.
+src/app/(dashboard)/media/page.tsx(309,18): error TS2322: Type '{ data: MediaFile[]; columns: ColumnDef<MediaFile>[]; isLoading: boolean; page: number; totalPages: number; onPageChange: (p: number) => void; }' is not assignable to type 'IntrinsicAttributes & DataTableProps<MediaFile>'.
+  Property 'totalPages' does not exist on type 'IntrinsicAttributes & DataTableProps<MediaFile>'.
+src/app/(dashboard)/notifications/page.tsx(211,31): error TS2322: Type '{ children: Element; asChild: true; }' is not assignable to type 'IntrinsicAttributes & CollapsibleTriggerProps'.
+  Property 'asChild' does not exist on type 'IntrinsicAttributes & CollapsibleTriggerProps'.
+src/app/(dashboard)/notifications/page.tsx(235,25): error TS2322: Type '(val: number) => [number, string]' is not assignable to type 'Formatter<ValueType, NameType> & ((value: ValueType, name: NameType, item: TooltipPayloadEntry, index: number, payload: TooltipPayload) => ReactNode | [...])'.
+  Type '(val: number) => [number, string]' is not assignable to type 'Formatter<ValueType, NameType>'.
+    Types of parameters 'val' and 'value' are incompatible.
+      Type 'ValueType | undefined' is not assignable to type 'number'.
+        Type 'undefined' is not assignable to type 'number'.
+src/app/(dashboard)/notifications/page.tsx(256,23): error TS2322: Type '(val: number) => [number, string]' is not assignable to type 'Formatter<ValueType, NameType> & ((value: ValueType, name: NameType, item: TooltipPayloadEntry, index: number, payload: TooltipPayload) => ReactNode | [...])'.
+  Type '(val: number) => [number, string]' is not assignable to type 'Formatter<ValueType, NameType>'.
+    Types of parameters 'val' and 'value' are incompatible.
+      Type 'ValueType | undefined' is not assignable to type 'number'.
+        Type 'undefined' is not assignable to type 'number'.
+src/app/(dashboard)/notifications/page.tsx(332,39): error TS2322: Type '{ children: Element; asChild: true; }' is not assignable to type 'IntrinsicAttributes & CollapsibleTriggerProps'.
+  Property 'asChild' does not exist on type 'IntrinsicAttributes & CollapsibleTriggerProps'.
+src/app/(dashboard)/remote-commands/page.tsx(182,15): error TS2352: Conversion of type 'null' to type 'Device' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/app/(dashboard)/remote-commands/page.tsx(382,70): error TS2322: Type '{ children: Element; variant: "outline"; size: "sm"; className: string; asChild: true; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & VariantProps<(props?: (ConfigVariants<{ variant: { default: string; outline: string; secondary: string; ghost: string; destructive: string; link: string; }; size: { ...; }; }> & ClassProp) | undefined) => string>'.
+  Property 'asChild' does not exist on type 'IntrinsicAttributes & ButtonProps & VariantProps<(props?: (ConfigVariants<{ variant: { default: string; outline: string; secondary: string; ghost: string; destructive: string; link: string; }; size: { ...; }; }> & ClassProp) | undefined) => string>'.
+src/app/(dashboard)/remote-commands/page.tsx(396,41): error TS2322: Type '{ children: Element; variant: "outline"; asChild: true; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & VariantProps<(props?: (ConfigVariants<{ variant: { default: string; outline: string; secondary: string; ghost: string; destructive: string; link: string; }; size: { ...; }; }> & ClassProp) | undefined) => string>'.
+  Property 'asChild' does not exist on type 'IntrinsicAttributes & ButtonProps & VariantProps<(props?: (ConfigVariants<{ variant: { default: string; outline: string; secondary: string; ghost: string; destructive: string; link: string; }; size: { ...; }; }> & ClassProp) | undefined) => string>'.
+src/app/(dashboard)/remote-commands/page.tsx(534,44): error TS2322: Type 'Dispatch<SetStateAction<string>>' is not assignable to type '(value: string | null, eventDetails: SelectRootChangeEventDetails) => void'.
+  Types of parameters 'value' and 'value' are incompatible.
+    Type 'string | null' is not assignable to type 'SetStateAction<string>'.
+      Type 'null' is not assignable to type 'SetStateAction<string>'.
+src/app/(dashboard)/remote-commands/page.tsx(561,46): error TS2322: Type 'Dispatch<SetStateAction<string>>' is not assignable to type '(value: string | null, eventDetails: SelectRootChangeEventDetails) => void'.
+  Types of parameters 'value' and 'value' are incompatible.
+    Type 'string | null' is not assignable to type 'SetStateAction<string>'.
+      Type 'null' is not assignable to type 'SetStateAction<string>'.
+src/app/(dashboard)/remote-commands/page.tsx(611,49): error TS2322: Type 'Dispatch<SetStateAction<string>>' is not assignable to type '(value: string | null, eventDetails: SelectRootChangeEventDetails) => void'.
+  Types of parameters 'value' and 'value' are incompatible.
+    Type 'string | null' is not assignable to type 'SetStateAction<string>'.
+      Type 'null' is not assignable to type 'SetStateAction<string>'.
+src/app/(dashboard)/screenshots/page.tsx(89,98): error TS2322: Type '{ children: Element; size: "icon"; variant: "ghost"; className: string; asChild: true; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & VariantProps<(props?: (ConfigVariants<{ variant: { default: string; outline: string; secondary: string; ghost: string; destructive: string; link: string; }; size: { ...; }; }> & ClassProp) | undefined) => string>'.
+  Property 'asChild' does not exist on type 'IntrinsicAttributes & ButtonProps & VariantProps<(props?: (ConfigVariants<{ variant: { default: string; outline: string; secondary: string; ghost: string; destructive: string; link: string; }; size: { ...; }; }> & ClassProp) | undefined) => string>'.
+src/app/(dashboard)/social/instagram/page.tsx(174,15): error TS2322: Type '{ data: NotificationLog[]; columns: ColumnDef<NotificationLog>[]; isLoading: boolean; searchPlaceholder: string; searchQuery: string; onSearchChange: Dispatch<...>; page: number; totalPages: number; onPageChange: Dispatch<...>; }' is not assignable to type 'IntrinsicAttributes & DataTableProps<NotificationLog>'.
+  Property 'totalPages' does not exist on type 'IntrinsicAttributes & DataTableProps<NotificationLog>'.
+src/app/(dashboard)/social/youtube/page.tsx(5,10): error TS2305: Module '"lucide-react"' has no exported member 'Youtube'.
+src/app/(dashboard)/social/youtube/page.tsx(189,28): error TS2322: Type 'string | null' is not assignable to type 'string | Blob | undefined'.
+  Type 'null' is not assignable to type 'string | Blob | undefined'.
+src/components/dashboard/geofence-map-picker.tsx(124,13): error TS2322: Type '(val: number[]) => void' is not assignable to type '(value: number | readonly number[], eventDetails: SliderRootChangeEventDetails) => void'.
+  Types of parameters 'val' and 'value' are incompatible.
+    Type 'number | readonly number[]' is not assignable to type 'number[]'.
+      Type 'number' is not assignable to type 'number[]'.
+src/components/dashboard/social-chat-bubble.tsx(12,3): error TS2724: '"lucide-react"' has no exported member named 'Gif'. Did you mean 'Gift'?
+src/components/layout/device-selector.tsx(37,37): error TS2339: Property 'id' does not exist on type 'never'.
+src/components/layout/device-selector.tsx(67,51): error TS2322: Type '(id: string) => void' is not assignable to type '(value: string | null, eventDetails: SelectRootChangeEventDetails) => void'.
+  Types of parameters 'id' and 'value' are incompatible.
+    Type 'string | null' is not assignable to type 'string'.
+      Type 'null' is not assignable to type 'string'.
+src/components/shared/audio-player.tsx(85,13): error TS2322: Type '(value: number[]) => void' is not assignable to type '(value: number | readonly number[], eventDetails: SliderRootChangeEventDetails) => void'.
+  Types of parameters 'value' and 'value' are incompatible.
+    Type 'number | readonly number[]' is not assignable to type 'number[]'.
+      Type 'number' is not assignable to type 'number[]'.
+src/components/shared/media-lightbox.tsx(5,10): error TS2305: Module '"@/lib/utils/format"' has no exported member 'formatBytes'.
