@@ -168,12 +168,16 @@ export default function LocationsPage() {
       key: "timestamp",
       header: "Date/Time",
       width: "160px",
-      render: (row) => (
-        <div className="flex flex-col">
-          <span className="text-sm font-medium">{format(new Date(row.timestamp), "MMM d, yyyy")}</span>
-          <span className="text-xs text-slate-500">{format(new Date(row.timestamp), "h:mm:ss a")}</span>
-        </div>
-      )
+      render: (row) => {
+        const date = new Date(row.timestamp)
+        const isValid = !isNaN(date.getTime())
+        return (
+          <div className="flex flex-col">
+            <span className="text-sm font-medium">{isValid ? format(date, "MMM d, yyyy") : 'Invalid Date'}</span>
+            <span className="text-xs text-slate-500">{isValid ? format(date, "h:mm:ss a") : '--'}</span>
+          </div>
+        )
+      }
     },
     {
       key: "address",
@@ -188,11 +192,15 @@ export default function LocationsPage() {
     {
       key: "coordinates",
       header: "Lat / Lng",
-      render: (row) => (
-        <span className="text-xs font-mono text-slate-600">
-          {row.latitude.toFixed(5)}, {row.longitude.toFixed(5)}
-        </span>
-      )
+      render: (row) => {
+        const lat = typeof row.latitude === 'number' ? row.latitude.toFixed(5) : '--'
+        const lng = typeof row.longitude === 'number' ? row.longitude.toFixed(5) : '--'
+        return (
+          <span className="text-xs font-mono text-slate-600">
+            {lat}, {lng}
+          </span>
+        )
+      }
     },
     {
       key: "accuracy",

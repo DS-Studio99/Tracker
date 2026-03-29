@@ -18,9 +18,15 @@ function MapController({ center, zoom, liveMode, locations }: { center?: [number
     if (center && liveMode) {
       map.setView(center, zoom || 16, { animate: true })
     } else if (locations.length > 0 && !liveMode && !center) {
-      const bounds = L.latLngBounds(locations.map(loc => [loc.latitude, loc.longitude]))
-      if (bounds.isValid()) {
-        map.fitBounds(bounds, { padding: [50, 50] })
+      const validPoints = locations
+        .filter(loc => typeof loc.latitude === 'number' && typeof loc.longitude === 'number')
+        .map(loc => [loc.latitude, loc.longitude] as [number, number])
+        
+      if (validPoints.length > 0) {
+        const bounds = L.latLngBounds(validPoints)
+        if (bounds.isValid()) {
+          map.fitBounds(bounds, { padding: [50, 50] })
+        }
       }
     } else if (center) {
       map.setView(center, zoom || 15)
@@ -51,7 +57,9 @@ export function LocationMap({
   }, [])
 
   // Create path coordinates
-  const pathCoords = locations.map(loc => [loc.latitude, loc.longitude] as [number, number])
+  const pathCoords = locations
+    .filter(loc => typeof loc.latitude === 'number' && typeof loc.longitude === 'number')
+    .map(loc => [loc.latitude, loc.longitude] as [number, number])
 
   if (locations.length === 0 && !center) {
     return (
@@ -131,7 +139,10 @@ export function LocationMap({
                   <div className="p-1 space-y-2 min-w-[200px]">
                     <div className="font-semibold text-sm border-b pb-1 flex items-center gap-1.5">
                       <Clock className="h-3.5 w-3.5 text-slate-500" />
-                      {format(new Date(loc.timestamp), "MMM d, yyyy h:mm:ss a")}
+                      {(() => {
+                        const date = new Date(loc.timestamp)
+                        return isNaN(date.getTime()) ? 'Invalid Time' : format(date, "MMM d, yyyy h:mm:ss a")
+                      })()}
                     </div>
                     
                     <div className="grid grid-cols-2 gap-2 text-xs pt-1">
