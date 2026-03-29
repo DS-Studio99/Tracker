@@ -135,13 +135,20 @@ export default function DevicesPage() {
         status: "pending"
       })
 
-      // The backend should handle cascade deletes via foreign keys when device is deleted
-      const { error } = await supabase.from('devices').delete().eq('id', deleteDevice.id)
-      if (error) throw error
+      // Call the absolute wipe API route to cascade delete across all tables instantly
+      const response = await fetch(`/api/v1/device/${deleteDevice.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" }
+      })
+
+      if (!response.ok) {
+        const errData = await response.json()
+        throw new Error(errData.error || "Failed to erase device")
+      }
 
       removeDevice(deleteDevice.id)
-      if (selectedDeviceId === deleteDevice.id) setSelectedDevice(devices.find(d => d.id !== deleteDevice.id)?.id || "")
-      toast.success(`${deleteDevice.device_name} removed successfully`)
+      if (selectedDeviceId === deleteDevice.id) setSelectedDevice(devices.find(d => d.id !== deleteDevice?.id)?.id || "")
+      toast.success(`${deleteDevice.device_name} and all associated data permanently erased`)
       setDeleteDevice(null)
     } catch (err: any) {
       toast.error("Failed to delete device")

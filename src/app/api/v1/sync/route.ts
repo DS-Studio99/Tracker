@@ -50,13 +50,60 @@ export async function POST(req: Request) {
     let alertsGenerated = 0
     const newAlerts: any[] = []
 
+    // Helper to format timestamp
+    const formatTs = (ts: any) => {
+      if (!ts) return new Date().toISOString()
+      if (typeof ts === 'number') return new Date(ts).toISOString()
+      return ts // assuming already string/ISO
+    }
+
     // Helper to safely upsert chunk
     const syncTable = async (tableName: string, items: any[], onConflict?: string) => {
       if (!items || !Array.isArray(items) || items.length === 0) return
       
       syncedStats[tableName] = { inserted: 0, failed: 0 }
       
-      const chunkedItems = items.map(item => ({ ...item, device_id: deviceId }))
+      const chunkedItems = items.map(item => {
+        // --- 1. Map fields to match database schema ---
+        const mapped: any = { ...item, device_id: deviceId }
+
+        // Fields mapping for Android Entity -> Postgres Table
+        if (tableName === 'call_logs') {
+          mapped.phone_number = item.caller_number || item.phone_number || 'Unknown'
+          mapped.contact_name = item.caller_name || item.contact_name
+          delete mapped.caller_number
+          delete mapped.caller_name
+        }
+
+        if (tableName === 'installed_apps') {
+          mapped.installed_at = formatTs(item.install_time || item.installed_at)
+          mapped.app_icon_url = item.app_icon_url || null
+          delete mapped.install_time
+          delete mapped.update_time
+        }
+
+        if (tableName === 'app_usage') {
+          mapped.duration = item.total_time_in_foreground || item.duration || 0
+          mapped.start_time = formatTs(item.start_time)
+          mapped.end_time = formatTs(item.end_time)
+          delete mapped.total_time_in_foreground
+        }
+
+        // --- 2. Convert ALL timestamp/long fields to ISO Strings for Postgres TIMESTAMPTZ ---
+        if (mapped.timestamp) mapped.timestamp = formatTs(mapped.timestamp)
+        if (mapped.created_at) mapped.created_at = formatTs(mapped.created_at)
+        if (mapped.last_updated_timestamp) {
+           mapped.last_modified = formatTs(mapped.last_updated_timestamp)
+           delete mapped.last_updated_timestamp
+        }
+        if (mapped.file_timestamp) mapped.file_timestamp = formatTs(mapped.file_timestamp)
+        
+        // Remove Room specific local columns that don't exist in remote DB
+        delete mapped.sync_status
+        delete mapped.is_uninstalled
+        
+        return mapped
+      })
       
       // Upsert batch
       let query = supabaseAdmin.from(tableName).upsert(chunkedItems, onConflict ? { onConflict } : undefined)
