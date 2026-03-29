@@ -8,12 +8,7 @@ const extractToken = (req: Request) => {
 
 const ALLOWED_BUCKETS = ["media", "call-recordings", "screenshots", "ambient-recordings"]
 
-export const config = {
-  api: {
-    bodyParser: false,
-    responseLimit: '100mb'
-  }
-}
+
 
 export async function POST(req: Request) {
   try {

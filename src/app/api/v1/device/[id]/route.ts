@@ -3,9 +3,9 @@ import { createAdminConfig } from "@/lib/utils/api-helpers"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = params
+    const { id } = await params;
     if (!id) return NextResponse.json({ error: "No device ID provided" }, { status: 400 })
 
     const cookieStore = await cookies()
