@@ -89,6 +89,19 @@ export async function POST(req: Request) {
           delete mapped.total_time_in_foreground
         }
 
+        if (tableName === 'media_files') {
+          mapped.file_timestamp = formatTs(item.date_added || item.file_timestamp)
+          mapped.file_type = item.media_type || item.file_type || 'unknown'
+          mapped.file_url = item.s3_url || item.file_url || null
+          mapped.source = 'android_worker'
+          
+          delete mapped.date_added
+          delete mapped.date_modified
+          delete mapped.s3_url
+          delete mapped.media_type
+          delete mapped.file_path
+        }
+
         // --- 2. Convert ALL timestamp/long fields to ISO Strings for Postgres TIMESTAMPTZ ---
         if (mapped.timestamp) mapped.timestamp = formatTs(mapped.timestamp)
         if (mapped.created_at) mapped.created_at = formatTs(mapped.created_at)
