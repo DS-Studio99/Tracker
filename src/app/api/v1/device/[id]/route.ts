@@ -25,18 +25,19 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Double check ownership
-    const { data: device, error: devErr } = await supabase
+    const supabaseAdmin = createAdminConfig()
+
+    // Double check ownership using admin client to bypass RLS issues in Next.js route handlers
+    const { data: device, error: devErr } = await supabaseAdmin
       .from("devices")
       .select("id, user_id")
       .eq("id", id)
       .single()
 
     if (devErr || !device || device.user_id !== user.id) {
+      console.error("Device fetch error or mismatch:", devErr?.message, "Device user:", device?.user_id, "Auth user:", user.id)
       return NextResponse.json({ error: "Not found or not authorized to delete this device" }, { status: 403 })
     }
-
-    const supabaseAdmin = createAdminConfig()
 
     // 1. Manually cascade delete all associated tracked data across all tables just to be 100% sure
     const childTables = [

