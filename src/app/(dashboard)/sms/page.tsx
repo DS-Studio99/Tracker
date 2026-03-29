@@ -54,6 +54,7 @@ export default function SmsPage() {
   const [selectedMessage, setSelectedMessage] = useState<SmsMessage | null>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [stats, setStats] = useState<SmsStats | null>(null)
+  const [statsUpdateTrigger, setStatsUpdateTrigger] = useState(0)
 
   // Setup filters for query
   const filters = useMemo(() => {
@@ -81,6 +82,34 @@ export default function SmsPage() {
   useEffect(() => {
     setPage(0)
   }, [selectedDeviceId, filters, dateRange, searchQuery])
+
+  // Realtime Subscriptions for Instant Sync
+  useEffect(() => {
+    if (!selectedDeviceId) return
+
+    const supabase = createClient()
+    const channel = supabase
+      .channel('realtime_sms')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'sms_messages',
+          filter: `device_id=eq.${selectedDeviceId}`
+        },
+        (payload) => {
+          // Instantly refresh the data and stats when a new SMS arrives
+          refetch()
+          setStatsUpdateTrigger(prev => prev + 1)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [selectedDeviceId, refetch])
 
   // Fetch stats (independent of pagination and search)
   useEffect(() => {
@@ -133,7 +162,7 @@ export default function SmsPage() {
     }
     
     fetchStats()
-  }, [selectedDeviceId, dateRange])
+  }, [selectedDeviceId, dateRange, statsUpdateTrigger])
 
   const typeIcon = (type: string) => {
     switch (type) {
