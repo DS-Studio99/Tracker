@@ -1,14 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useDeviceStore } from "@/lib/stores/device-store";
-import { useSupabaseRealtime } from "@/lib/hooks/use-supabase-realtime";
 import { formatRelative, formatFileSize } from "@/lib/utils/format";
 import { StatCard } from "@/components/shared/stat-card";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -20,11 +18,12 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { 
   Smartphone, MessageSquare, PhoneCall, MapPin, Image as ImageIcon,
-  Grid, Bell, Battery, BatteryCharging, ChevronRight, Activity 
+  Grid, Bell, Battery, BatteryCharging, ChevronRight, Activity,
+  Wifi, Globe, HardDrive, Cpu, RefreshCw, Signal
 } from "lucide-react";
 import { 
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
-  Tooltip as RechartsTooltip, Legend, ResponsiveContainer 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, 
+  Tooltip as RechartsTooltip, ResponsiveContainer 
 } from "recharts";
 
 // Dynamically import Leaflet map (disables SSR to prevent window is not defined errors)
@@ -36,18 +35,70 @@ const MiniMap = dynamic(() => import("@/components/maps/mini-map"), {
 export default function DashboardOverview() {
   const router = useRouter();
   const supabase = createClient();
-  const { selectedDeviceId, devices, setDevices } = useDeviceStore();
-  const [deviceStats, setDeviceStats] = useState<any>(null);
+  const queryClient = useQueryClient();
+  const { selectedDeviceId, devices, updateDevice } = useDeviceStore();
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
-  // Live update the device in the global store when realtime changes occur
-  useSupabaseRealtime(
-    "devices",
-    selectedDeviceId ? { column: "id", value: selectedDeviceId } : undefined,
-    undefined,
-    (payload) => {
-      setDevices(devices.map(d => d.id === payload.new.id ? { ...d, ...payload.new } : d));
-    }
-  );
+  // ✅ REALTIME: Device info (RAM, Battery, Storage) live update via Supabase Realtime
+  useEffect(() => {
+    if (!selectedDeviceId) return;
+
+    const channel = supabase
+      .channel(`device_realtime_${selectedDeviceId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'devices',
+          filter: `id=eq.${selectedDeviceId}`,
+        },
+        (payload) => {
+          // ✅ Device info (battery, RAM, storage) instantly update করো
+          updateDevice(selectedDeviceId, payload.new);
+          setLastRefresh(new Date());
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [selectedDeviceId]);
+
+  // ✅ REALTIME: নতুন SMS আসলে instantly দেখাও
+  useEffect(() => {
+    if (!selectedDeviceId) return;
+    const channel = supabase
+      .channel(`sms_realtime_${selectedDeviceId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sms_messages', filter: `device_id=eq.${selectedDeviceId}` },
+        () => { queryClient.invalidateQueries({ queryKey: ["recent_sms", selectedDeviceId] }); }
+      ).subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [selectedDeviceId]);
+
+  // ✅ REALTIME: নতুন Call আসলে instantly দেখাও
+  useEffect(() => {
+    if (!selectedDeviceId) return;
+    const channel = supabase
+      .channel(`calls_realtime_${selectedDeviceId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'call_logs', filter: `device_id=eq.${selectedDeviceId}` },
+        () => { queryClient.invalidateQueries({ queryKey: ["recent_calls", selectedDeviceId] }); }
+      ).subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [selectedDeviceId]);
+
+  // ✅ REALTIME: Stats update (installed apps, sms count, etc.)
+  useEffect(() => {
+    if (!selectedDeviceId) return;
+    const tables = ['sms_messages', 'call_logs', 'locations', 'installed_apps'];
+    const channels = tables.map(tableName => 
+      supabase
+        .channel(`stats_${tableName}_${selectedDeviceId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: tableName, filter: `device_id=eq.${selectedDeviceId}` },
+          () => { queryClient.invalidateQueries({ queryKey: ["device_stats", selectedDeviceId] }); }
+        ).subscribe()
+    );
+    return () => { channels.forEach(ch => supabase.removeChannel(ch)); };
+  }, [selectedDeviceId]);
 
   // Fetch complete overview statistics
   const { data: stats, isLoading: isStatsLoading } = useQuery({
@@ -59,28 +110,42 @@ export default function DashboardOverview() {
       return data;
     },
     enabled: !!selectedDeviceId,
-    refetchInterval: 30000, // refresh every 30s
+    refetchInterval: 10000, // ✅ 10s refresh (faster)
+    staleTime: 5000,
   });
 
-  // Fetch Recent Activity (SMS, Calls, Alerts combined logic or separate queries)
+  // ✅ Recent SMS — no refetch interval needed (realtime handles it)
   const { data: recentSms } = useQuery({
     queryKey: ["recent_sms", selectedDeviceId],
     queryFn: async () => {
       if (!selectedDeviceId) return [];
-      const { data } = await supabase.from('sms_messages').select('*').eq('device_id', selectedDeviceId).order('timestamp', { ascending: false }).limit(5);
+      const { data } = await supabase
+        .from('sms_messages')
+        .select('*')
+        .eq('device_id', selectedDeviceId)
+        .order('timestamp', { ascending: false })
+        .limit(5);
       return data || [];
     },
     enabled: !!selectedDeviceId,
+    staleTime: 0, // Always fresh
   });
 
+  // ✅ Recent Calls
   const { data: recentCalls } = useQuery({
     queryKey: ["recent_calls", selectedDeviceId],
     queryFn: async () => {
       if (!selectedDeviceId) return [];
-      const { data } = await supabase.from('call_logs').select('*').eq('device_id', selectedDeviceId).order('timestamp', { ascending: false }).limit(5);
+      const { data } = await supabase
+        .from('call_logs')
+        .select('*')
+        .eq('device_id', selectedDeviceId)
+        .order('timestamp', { ascending: false })
+        .limit(5);
       return data || [];
     },
     enabled: !!selectedDeviceId,
+    staleTime: 0,
   });
 
   const { data: topContacts } = useQuery({
@@ -91,16 +156,23 @@ export default function DashboardOverview() {
       return data || [];
     },
     enabled: !!selectedDeviceId,
+    refetchInterval: 30000,
   });
 
   const { data: recentPhotos } = useQuery({
     queryKey: ["recent_photos", selectedDeviceId],
     queryFn: async () => {
       if (!selectedDeviceId) return [];
-      const { data } = await supabase.from('media_files').select('thumbnail_url, file_url, id').eq('device_id', selectedDeviceId).eq('file_type', 'photo').order('created_at', { ascending: false }).limit(6);
+      const { data } = await supabase
+        .from('media_files')
+        .select('thumbnail_url, file_url, id')
+        .eq('device_id', selectedDeviceId)
+        .order('created_at', { ascending: false })
+        .limit(6);
       return data || [];
     },
     enabled: !!selectedDeviceId,
+    refetchInterval: 30000,
   });
 
   if (!selectedDeviceId) {
@@ -117,8 +189,10 @@ export default function DashboardOverview() {
   const device = devices.find(d => d.id === selectedDeviceId);
   if (!device) return <CardSkeleton />;
 
-  const storagePercent = device.storage_total ? Math.round(((device.storage_used || 0) / device.storage_total) * 100) : 0;
-  const ramPercent = device.ram_total ? Math.round(((device.ram_used || 0) / device.ram_total) * 100) : 0;
+  const storagePercent = device.storage_total && device.storage_total > 0 
+    ? Math.round(((device.storage_used || 0) / device.storage_total) * 100) : 0;
+  const ramPercent = device.ram_total && device.ram_total > 0
+    ? Math.round(((device.ram_used || 0) / device.ram_total) * 100) : 0;
   const lastLocation = stats?.last_location;
 
   return (
@@ -127,66 +201,111 @@ export default function DashboardOverview() {
         title="Dashboard Overview" 
         description={`Real-time insights for ${device.device_name}`}
         actions={
-          <Button variant="outline" onClick={() => router.push('/settings')}>
-            Device Settings
-          </Button>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-400 flex items-center gap-1">
+              <RefreshCw className="h-3 w-3" />
+              Live • {lastRefresh.toLocaleTimeString()}
+            </span>
+            <Button variant="outline" onClick={() => router.push('/settings')}>
+              Device Settings
+            </Button>
+          </div>
         }
       />
 
-      {/* 1. DEVICE INFO BAR */}
+      {/* 1. DEVICE INFO BAR — Realtime RAM, Storage, Battery */}
       <Card className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-slate-800 shadow-sm">
-        <CardContent className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="flex items-center gap-4 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 pb-4 md:pb-0">
-            <div className="h-12 w-12 shrink-0 rounded-full bg-slate-100 dark:bg-slate-900 flex items-center justify-center border border-slate-200 dark:border-slate-800">
-              <Smartphone className="h-6 w-6 text-slate-600 dark:text-slate-400" />
-            </div>
-            <div className="flex flex-col flex-1 min-w-0">
-              <span className="font-semibold text-lg truncate">{device.device_name}</span>
-              <span className="text-sm text-slate-500 flex items-center gap-2 truncate">
-                {device.device_model} • Android {device.android_version}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex flex-col justify-center gap-3 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 pb-4 md:pb-0 md:px-4">
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-slate-500 flex items-center gap-1.5">
-                <div className={`w-2 h-2 rounded-full ${device.is_online ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
-                {device.is_online ? 'Online Now' : 'Offline'}
-              </span>
-              <span className="text-slate-400 text-xs text-right">
-                {device.last_seen ? formatRelative(device.last_seen) : 'Never seen'}
-              </span>
-            </div>
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-slate-500 flex items-center gap-1.5">
-                {device.is_charging ? <BatteryCharging className="h-4 w-4 text-emerald-500" /> : <Battery className="h-4 w-4 text-slate-500" />}
-                {device.battery_level}% Battery
-              </span>
-              <Progress value={device.battery_level} className="w-24 h-2" />
-            </div>
-          </div>
-
-          <div className="flex flex-col justify-center gap-3 md:px-4">
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-xs text-slate-500">
-                <span>Storage ({storagePercent}%)</span>
-                <span>{formatFileSize(device.storage_used || 0)} / {formatFileSize(device.storage_total || 0)}</span>
+        <CardContent className="p-4 sm:p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            {/* Device Identity */}
+            <div className="flex items-center gap-4 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 pb-4 md:pb-0">
+              <div className="h-14 w-14 shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
+                <Smartphone className="h-7 w-7 text-white" />
               </div>
-              <Progress value={storagePercent} className="h-1.5" />
-            </div>
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-xs text-slate-500">
-                <span>RAM ({ramPercent}%)</span>
-                <span>{formatFileSize(device.ram_used || 0)} / {formatFileSize(device.ram_total || 0)}</span>
+              <div className="flex flex-col flex-1 min-w-0">
+                <span className="font-bold text-lg truncate">{device.device_name}</span>
+                <span className="text-sm text-slate-500 truncate">{device.device_model}</span>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge variant={device.is_online ? "default" : "destructive"} className={`text-[10px] px-1.5 py-0 ${device.is_online ? 'bg-emerald-500' : ''}`}>
+                    <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1 ${device.is_online ? 'bg-white animate-pulse' : 'bg-white/50'}`}></span>
+                    {device.is_online ? 'Live Online' : 'Offline'}
+                  </Badge>
+                  <span className="text-[10px] text-slate-400">Android {device.android_version}</span>
+                </div>
               </div>
-              <Progress value={ramPercent} className="h-1.5" />
+            </div>
+
+            {/* Battery + Network — REALTIME */}
+            <div className="flex flex-col justify-center gap-3 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 pb-4 md:pb-0 md:px-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-slate-500 flex items-center gap-1.5">
+                  {device.is_charging 
+                    ? <BatteryCharging className="h-4 w-4 text-emerald-500" /> 
+                    : <Battery className="h-4 w-4 text-slate-500" />}
+                  Battery
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold">
+                    {device.battery_level != null ? `${device.battery_level}%` : '--'}
+                  </span>
+                  <Progress value={device.battery_level || 0} className="w-20 h-2" />
+                </div>
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-slate-500 flex items-center gap-1.5">
+                  <Signal className="h-4 w-4 text-blue-500" />
+                  Network
+                </span>
+                <Badge variant="outline" className="text-xs capitalize">
+                  {(device as any).network_type || (device as any).screen_status || 'Unknown'}
+                </Badge>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-slate-400">Last seen</span>
+                <span className="text-xs text-slate-500">
+                  {device.last_seen ? formatRelative(device.last_seen) : 'Never'}
+                </span>
+              </div>
+            </div>
+
+            {/* Storage + RAM — REALTIME */}
+            <div className="flex flex-col justify-center gap-4 md:px-4">
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-500 flex items-center gap-1">
+                    <HardDrive className="h-3 w-3" /> Storage ({storagePercent}%)
+                  </span>
+                  <span className="text-slate-600 font-medium">
+                    {device.storage_total 
+                      ? `${formatFileSize(device.storage_used || 0)} / ${formatFileSize(device.storage_total)}`
+                      : 'No data'}
+                  </span>
+                </div>
+                <Progress value={storagePercent} className="h-2" />
+              </div>
+              
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-500 flex items-center gap-1">
+                    <Cpu className="h-3 w-3" /> RAM ({ramPercent}%)
+                  </span>
+                  <span className="text-slate-600 font-medium">
+                    {device.ram_total 
+                      ? `${formatFileSize(device.ram_used || 0)} / ${formatFileSize(device.ram_total)}`
+                      : 'No data'}
+                  </span>
+                </div>
+                <Progress value={ramPercent} className="h-2" />
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* 2. SUMMARY STAT CARDS */}
+      {/* 2. SUMMARY STAT CARDS — Realtime counts */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {isStatsLoading ? (
           Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} />)
@@ -204,7 +323,7 @@ export default function DashboardOverview() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* 3. MINI MAP (Left Column 60%) */}
+        {/* 3. MINI MAP */}
         <Card className="lg:col-span-7 flex flex-col overflow-hidden shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between py-4">
             <CardTitle className="text-base flex items-center gap-2">
@@ -225,13 +344,14 @@ export default function DashboardOverview() {
           </CardContent>
         </Card>
 
-        {/* 4. RECENT ACTIVITY (Right Column 40%) */}
+        {/* 4. RECENT ACTIVITY — Realtime */}
         <div className="lg:col-span-5 flex flex-col gap-6">
-          
           <Card className="shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between py-4 pb-2 border-b">
+            <CardHeader className="flex flex-row items-center justify-between py-3 pb-2 border-b">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Activity className="h-4 w-4 text-emerald-500" /> Activity Feed
+                <Activity className="h-4 w-4 text-emerald-500" /> 
+                Live Activity Feed
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block"></span>
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0 divide-y divide-slate-100 dark:divide-slate-800">
@@ -242,14 +362,18 @@ export default function DashboardOverview() {
                   <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Recent Messages</span>
                   <Link href="/sms" className="text-xs text-blue-500 hover:underline">View all</Link>
                 </div>
-                {recentSms?.length === 0 ? <p className="text-xs text-slate-400">No recent messages.</p> : recentSms?.map((sms: any) => (
+                {!recentSms || recentSms.length === 0 
+                  ? <p className="text-xs text-slate-400">No SMS data yet. Waiting for sync...</p> 
+                  : recentSms.map((sms: any) => (
                   <div key={sms.id} className="flex items-center gap-3">
                     <div className={`h-8 w-8 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-900 ${sms.message_type === 'incoming' ? 'text-emerald-500' : 'text-blue-500'}`}>
                       <MessageSquare className="h-4 w-4" />
                     </div>
                     <div className="flex flex-col flex-1 min-w-0">
                       <div className="flex justify-between items-center w-full">
-                        <span className="text-sm font-medium truncate">{sms.sender_name || sms.sender_number || sms.receiver_number}</span>
+                        <span className="text-sm font-medium truncate">
+                          {sms.sender_name || sms.sender_number || sms.receiver_number || 'Unknown'}
+                        </span>
                         <span className="text-[10px] text-slate-400 whitespace-nowrap">{formatRelative(sms.timestamp)}</span>
                       </div>
                       <span className="text-xs text-slate-500 truncate">{sms.body}</span>
@@ -264,7 +388,9 @@ export default function DashboardOverview() {
                   <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Recent Calls</span>
                   <Link href="/calls" className="text-xs text-blue-500 hover:underline">View all</Link>
                 </div>
-                {recentCalls?.length === 0 ? <p className="text-xs text-slate-400">No recent calls.</p> : recentCalls?.map((call: any) => (
+                {!recentCalls || recentCalls.length === 0 
+                  ? <p className="text-xs text-slate-400">No call data yet. Waiting for sync...</p> 
+                  : recentCalls.map((call: any) => (
                   <div key={call.id} className="flex items-center gap-3">
                     <div className={`h-8 w-8 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-900 ${
                       call.call_type === 'missed' ? 'text-red-500' : call.call_type === 'incoming' ? 'text-emerald-500' : 'text-blue-500'
@@ -273,10 +399,14 @@ export default function DashboardOverview() {
                     </div>
                     <div className="flex flex-col flex-1 min-w-0">
                       <div className="flex justify-between items-center w-full">
-                        <span className="text-sm font-medium truncate">{call.contact_name || call.phone_number}</span>
+                        <span className="text-sm font-medium truncate">
+                          {call.caller_name || call.caller_number || call.phone_number || 'Unknown'}
+                        </span>
                         <span className="text-[10px] text-slate-400 whitespace-nowrap">{formatRelative(call.timestamp)}</span>
                       </div>
-                      <span className="text-xs text-slate-500 capitalize">{call.call_type} • {call.duration}s</span>
+                      <span className="text-xs text-slate-500 capitalize">
+                        {call.call_type} • {call.duration ? `${call.duration}s` : '0s'}
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -284,7 +414,6 @@ export default function DashboardOverview() {
 
             </CardContent>
           </Card>
-
         </div>
       </div>
 
@@ -306,7 +435,9 @@ export default function DashboardOverview() {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full w-full flex items-center justify-center text-sm text-slate-400">Not enough data available</div>
+              <div className="h-full w-full flex items-center justify-center text-sm text-slate-400">
+                {isStatsLoading ? 'Loading...' : 'Not enough data available'}
+              </div>
             )}
           </CardContent>
         </Card>
@@ -321,8 +452,12 @@ export default function DashboardOverview() {
               <div className="grid grid-cols-3 gap-2">
                 {recentPhotos.map((photo: any) => (
                   <div key={photo.id} className="aspect-square relative rounded-md overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 group cursor-pointer hover:shadow-md transition-all">
-                    {/* Fallback to simple img if no next/image domain config, but we use an img tag for remote arbitrary URLs */}
-                    <img src={photo.thumbnail_url || photo.file_url} alt="Device photo preview" className="object-cover w-full h-full transform group-hover:scale-110 transition-transform duration-300" />
+                    <img 
+                      src={photo.thumbnail_url || photo.file_url} 
+                      alt="Device photo preview" 
+                      className="object-cover w-full h-full transform group-hover:scale-110 transition-transform duration-300" 
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
                   </div>
                 ))}
               </div>
