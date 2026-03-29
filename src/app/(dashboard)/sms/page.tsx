@@ -279,7 +279,7 @@ export default function SmsPage() {
       />
 
       {/* Stats Section */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <StatCard 
           title="Total Messages" 
           value={stats?.total || 0} 
@@ -292,17 +292,7 @@ export default function SmsPage() {
           icon={<ArrowDownLeft className="h-4 w-4" />} 
           color="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40"
         />
-        <StatCard 
-          title="Outgoing" 
-          value={stats?.outgoing || 0} 
-          icon={<ArrowUpRight className="h-4 w-4" />} 
-          color="bg-blue-100 text-blue-600 dark:bg-blue-900/40"
-        />
-        <StatCard 
-          title="Top Contact" 
-          value={stats?.topContact || "N/A"} 
-          icon={<MessageSquare className="h-4 w-4" />} 
-        />
+        {/* Outgoing and Top Contact hidden per user request */}
       </div>
 
       {/* Filters Bar */}
