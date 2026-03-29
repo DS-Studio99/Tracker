@@ -66,6 +66,40 @@ export async function POST(req: Request) {
       .from(bucket)
       .getPublicUrl(uploadData.path)
 
+    // --- Link Recording to Call Log ---
+    if (bucket === "call-recordings" && file.name) {
+      try {
+        // Extract timestamp from filename, e.g., "call_1699999999999.mp4"
+        const timeMatch = file.name.match(/\d+/)
+        if (timeMatch) {
+          const fileTimestampMs = parseInt(timeMatch[0], 10)
+          const searchDate = new Date(fileTimestampMs)
+          
+          // Looking for a call log around this time (within 10 minutes)
+          const minDate = new Date(fileTimestampMs - 10 * 60 * 1000).toISOString()
+          const maxDate = new Date(fileTimestampMs + 60 * 60 * 1000).toISOString() // Call duration could be up to 1hr.
+
+          const { data: closestCall, error: searchError } = await supabaseAdmin
+            .from('call_logs')
+            .select('id, timestamp')
+            .eq('device_id', validation.device_id)
+            .gte('timestamp', minDate)
+            .lte('timestamp', maxDate)
+            .order('timestamp', { ascending: false })
+            .limit(1)
+
+          if (!searchError && closestCall && closestCall.length > 0) {
+            // Found the matching call log, link it
+            await supabaseAdmin.from('call_logs').update({
+              recording_url: publicUrlData.publicUrl
+            }).eq('id', closestCall[0].id)
+          }
+        }
+      } catch (err) {
+        console.error("Failed to link call recording:", err)
+      }
+    }
+
     return NextResponse.json({
       success: true,
       url: publicUrlData.publicUrl,
