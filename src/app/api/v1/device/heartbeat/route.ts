@@ -38,8 +38,8 @@ export async function POST(req: Request) {
         ram_total: ram_total ? Number(ram_total) : null,
         ram_used: ram_used ? Number(ram_used) : null,
         screen_status: screen_status || "unknown",
-        network_type: network_type || null,
-        current_app: current_app || null,
+        // network_type: network_type || null,  --> Removed, column not in Supabase schema
+        // current_app: current_app || null,    --> Removed, column not in Supabase schema
         is_online: true,          // ✅ Always mark online when heartbeat received
         last_seen: new Date().toISOString(),
         updated_at: new Date().toISOString()
