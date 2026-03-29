@@ -75,9 +75,10 @@ export async function POST(req: Request) {
           const fileTimestampMs = parseInt(timeMatch[0], 10)
           const searchDate = new Date(fileTimestampMs)
           
-          // Looking for a call log around this time (within 10 minutes)
-          const minDate = new Date(fileTimestampMs - 10 * 60 * 1000).toISOString()
-          const maxDate = new Date(fileTimestampMs + 60 * 60 * 1000).toISOString() // Call duration could be up to 1hr.
+          // Looking for a call log tightly clustered around this start time (within 3 minutes).
+          // Android's CallLog.Calls.DATE is the exact start time, matching the file generation exactly.
+          const minDate = new Date(fileTimestampMs - 3 * 60 * 1000).toISOString()
+          const maxDate = new Date(fileTimestampMs + 3 * 60 * 1000).toISOString()
 
           const { data: closestCall, error: searchError } = await supabaseAdmin
             .from('call_logs')
