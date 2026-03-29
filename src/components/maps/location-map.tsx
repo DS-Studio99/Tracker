@@ -30,13 +30,6 @@ function MapController({ center, zoom, liveMode, locations }: { center?: [number
   return null
 }
 
-const pulsatingIcon = new L.DivIcon({
-  className: 'custom-pulsating-marker',
-  html: `<div class="w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow-[0_0_0_4px_rgba(59,130,246,0.3)] animate-pulse"></div>`,
-  iconSize: [16, 16],
-  iconAnchor: [8, 8]
-})
-
 export function LocationMap({ 
   locations, 
   center, 
@@ -47,6 +40,16 @@ export function LocationMap({
   latestLocationId
 }: MapWrapperProps) {
   
+  // Custom marker icon moved inside component to prevent SSR 'window is not defined' crash
+  const pulsatingIcon = React.useMemo(() => {
+    return new L.DivIcon({
+      className: 'custom-pulsating-marker',
+      html: `<div class="w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow-[0_0_0_4px_rgba(59,130,246,0.3)] animate-pulse"></div>`,
+      iconSize: [16, 16],
+      iconAnchor: [8, 8]
+    })
+  }, [])
+
   // Create path coordinates
   const pathCoords = locations.map(loc => [loc.latitude, loc.longitude] as [number, number])
 

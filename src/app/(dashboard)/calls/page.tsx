@@ -75,6 +75,7 @@ export default function CallsPage() {
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [stats, setStats] = useState<CallStats | null>(null)
   const [isStatsLoading, setIsStatsLoading] = useState(true)
+  const [statsUpdateTrigger, setStatsUpdateTrigger] = useState(0)
 
   // Setup filters for query
   const filters = useMemo(() => {
@@ -85,7 +86,7 @@ export default function CallsPage() {
     return f
   }, [callType])
 
-  const { data: logsData, count: logsCount, isLoading: logsLoading } = useDeviceData<CallLog>('call_logs', {
+  const { data: logsData, count: logsCount, isLoading: logsLoading, refetch: refetchLogs } = useDeviceData<CallLog>('call_logs', {
     pageSize,
     orderBy: 'timestamp',
     orderDirection: 'desc',
@@ -111,6 +112,34 @@ export default function CallsPage() {
   useEffect(() => {
     setPage(0)
   }, [selectedDeviceId, filters, dateRange, searchQuery])
+
+  // Realtime Subscriptions for Instant Sync
+  useEffect(() => {
+    if (!selectedDeviceId) return
+
+    const supabase = createClient()
+    const channel = supabase
+      .channel('realtime_calls')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'call_logs',
+          filter: `device_id=eq.${selectedDeviceId}`
+        },
+        (payload) => {
+          // Instantly refresh the data and stats when a new call arrives
+          refetchLogs()
+          setStatsUpdateTrigger(prev => prev + 1)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [selectedDeviceId, refetchLogs])
 
   // Fetch stats (independent of pagination and search)
   useEffect(() => {
@@ -208,7 +237,7 @@ export default function CallsPage() {
     }
     
     fetchStats()
-  }, [selectedDeviceId, dateRange])
+  }, [selectedDeviceId, dateRange, statsUpdateTrigger])
 
   const typeIcon = (type: string) => {
     switch (type) {
