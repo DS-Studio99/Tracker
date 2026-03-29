@@ -28,11 +28,14 @@ const DEFAULT_SETTINGS = {
 export async function POST(req: Request) {
   try {
     const body = await req.json()
+    const { email, password, device_name, imei } = body
+    
+    // Support flat body or nested device_info
+    const info = body.device_info || body
     const { 
-      email, password, device_name, device_model, 
-      android_version, imei, phone_number, sim_operator, 
+      device_model, android_version, phone_number, sim_operator, 
       sim_serial, mac_address, app_version, is_rooted 
-    } = body
+    } = info
 
     // 1. Validate required fields
     if (!email || !password || !device_name || !imei) {

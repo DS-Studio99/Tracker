@@ -28,16 +28,15 @@ export async function POST(req: Request) {
 
     const supabaseAdmin = createAdminConfig()
 
-    // ✅ FIXED: is_online = true সেট করো, last_seen update করো, সব device info save করো
     const { error } = await supabaseAdmin
       .from("devices")
       .update({
-        battery_level: typeof battery_level === 'number' ? battery_level : 0,
+        battery_level: battery_level !== null && battery_level !== undefined ? Number(battery_level) : 0,
         is_charging: is_charging ?? false,
-        storage_total: storage_total ?? null,
-        storage_used: storage_used ?? null,
-        ram_total: ram_total ?? null,
-        ram_used: ram_used ?? null,
+        storage_total: storage_total ? Number(storage_total) : null,
+        storage_used: storage_used ? Number(storage_used) : null,
+        ram_total: ram_total ? Number(ram_total) : null,
+        ram_used: ram_used ? Number(ram_used) : null,
         screen_status: screen_status || "unknown",
         network_type: network_type || null,
         current_app: current_app || null,
