@@ -60,7 +60,7 @@ export default function MediaGalleryPage() {
     return f
   }, [fileType, source])
 
-  const { data: mediaItems, count, isLoading, setPage: handlePageChange } = useDeviceData<MediaFile>('media_files', {
+  const { data: mediaItems, count, isLoading, setPage: handlePageChange, refetch } = useDeviceData<MediaFile>('media_files', {
     pageSize,
     orderBy: 'file_timestamp',
     orderDirection: sortBy,
@@ -79,6 +79,33 @@ export default function MediaGalleryPage() {
   useEffect(() => {
     setPage(0)
   }, [page]) // keep sync
+
+  // Native Supabase Realtime Listener for new media uploads
+  useEffect(() => {
+    if (!selectedDeviceId) return;
+
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`media_sync_${selectedDeviceId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'media_files',
+          filter: `device_id=eq.${selectedDeviceId}`,
+        },
+        (payload) => {
+          toast.success("New media synced from device!");
+          refetch(); // Instantly update the UI
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [selectedDeviceId, refetch])
 
   const toggleSelection = (id: string) => {
     const newSet = new Set(selectedIds)
